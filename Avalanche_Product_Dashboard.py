@@ -2,10 +2,30 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from snowflake.snowpark import Session
 from snowflake.snowpark.context import get_active_session
 
+# Initialize connection
+@st.cache_resource
+def init_connection():
+    try:
+        # Try to get active session first (for Snowsight)
+        return get_active_session()
+    except Exception:
+        # Fall back to manual connection using secrets
+        connection_parameters = {
+            "account": st.secrets["snowflake"]["account"],
+            "user": st.secrets["snowflake"]["user"],
+            "password": st.secrets["snowflake"]["password"],
+            "warehouse": st.secrets["snowflake"]["warehouse"],
+            "database": st.secrets["snowflake"]["database"],
+            "schema": st.secrets["snowflake"]["schema"],
+            "role": st.secrets["snowflake"].get("role", "ACCOUNTADMIN")
+        }
+        return Session.builder.configs(connection_parameters).create()
+
 # Get Snowflake session
-session = get_active_session()
+session = init_connection()
 
 # Load data from Snowflake
 @st.cache_data
